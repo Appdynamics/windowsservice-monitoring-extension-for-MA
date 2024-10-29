@@ -1,0 +1,31 @@
+<!--
+  ~   Copyright 2018. AppDynamics LLC and its affiliates.
+  ~   All Rights Reserved.
+  ~   This is unpublished proprietary source code of AppDynamics LLC and its affiliates.
+  ~   The copyright notice above does not evidence any actual or intended publication of such source code.
+  ~
+  -->
+
+<monitor>
+    <name>WindowsServiceMonitorExtension</name>
+    <type>managed</type>
+    <description>Windows service monitoring extension allows the  machine agent to gather service status from windows machines.</description>
+    <monitor-configuration>
+    </monitor-configuration>
+    <monitor-run-task>
+        <execution-style>periodic</execution-style>
+        <execution-frequency-in-seconds>60</execution-frequency-in-seconds>
+        <name>WindowsServiceMonitorTask</name>
+        <display-name>Windows Service Monitor Extension Task</display-name>
+        <description>Windows Service Monitor Extension Task</description>
+        <type>java</type>
+        <execution-timeout-in-secs>60</execution-timeout-in-secs>
+        <task-arguments>
+            <argument name="config-file" is-required="true" default-value="monitors/WindowsServiceMonitorExtension/config.yml" />
+        </task-arguments>
+        <java-task>
+            <classpath>windows-service-monitoring.jar</classpath>
+            <impl-class>com.appdynamics.extensions.windowsServiceMonitoring.WindowsServiceMonitor</impl-class>
+        </java-task>
+    </monitor-run-task>
+</monitor>

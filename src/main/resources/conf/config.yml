@@ -7,6 +7,7 @@ metricPrefix: "Custom Metrics|Windows Service Monitor Extension"
 #metricPrefix: "Server|Component:<ComponentID>|Custom Metrics|Windows Service Monitor Extension"
 
 services: ["XblGameSave", "Ifsvc", "Dhcp"]
+serviceRegex: []
 
 # number of concurrent tasks
 numberOfThreads: 20

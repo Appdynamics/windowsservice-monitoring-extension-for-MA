@@ -26,10 +26,11 @@ Configure the extension by editing the `config.yml` file in `<MACHINE_AGENT_HOME
 
     More details around metric prefix can be found [here](https://community.appdynamics.com/t5/Knowledge-Base/How-do-I-troubleshoot-missing-custom-metrics-or-extensions/ta-p/28695).
 
-2. Add the names of the services you want to monitor in the config.yml file.  <br/>For example,
+2. Add the names of the services or regex you want to monitor in the config.yml file.  <br/>For example,
  
      ```
      services: ["XblGameSave", "Ifsvc", "Dhcp"]
+     serviceRegex: [".*app.*"]
 
      ```
 3. Configure the encryptionKey for encryptionPasswords(only if password encryption required).<br/>For example,

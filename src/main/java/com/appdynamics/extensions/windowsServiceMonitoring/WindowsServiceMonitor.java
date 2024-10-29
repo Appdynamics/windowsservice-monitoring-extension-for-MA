@@ -6,6 +6,7 @@ import com.appdynamics.extensions.logging.ExtensionsLoggerFactory;
 import com.appdynamics.extensions.util.AssertUtils;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -71,39 +72,63 @@ public class WindowsServiceMonitor extends ABaseMonitor {
 
         // reading a value from the config.yml file
         List<String> servicesList = (List<String>) getContextConfiguration().getConfigYml().get("services");
-        AssertUtils.assertNotNull(servicesList, "The 'services' section in config.yml is not initialised");
+        List<String> serviceRegexList = (List<String>) getContextConfiguration().getConfigYml().get("serviceRegex");
+
+        // Handle the case where both services and serviceRegex are null or empty
+        if ((servicesList == null || servicesList.isEmpty()) && (serviceRegexList == null || serviceRegexList.isEmpty())) {
+            logger.warn("Both 'services' and 'serviceRegex' sections in config.yml are empty or not initialised. No tasks will be submitted.");
+            return;
+        }
 
         // Convert list of service names to a list of maps
-        List<Map<String, String>> services = servicesList.stream()
+        List<Map<String, String>> services = servicesList != null ? servicesList.stream()
                 .map(serviceName -> Collections.singletonMap(SERVICE_NAME, serviceName))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()) : Collections.emptyList();
+
+        List<Map<String, String>> serviceRegexes = serviceRegexList != null ? serviceRegexList.stream()
+                .map(regex -> Collections.singletonMap("serviceRegex", regex))
+                .collect(Collectors.toList()) : Collections.emptyList();
 
         logger.debug("Services to monitor: {}", services);
+        logger.debug("Service regexes to monitor: {}", serviceRegexes);
 
-        /*
-         Each task is executed in thread pool, you can have one task to fetch metrics from each artifact concurrently
-         */
+        // Submit tasks for exact service names
         for (Map<String, String> service : services) {
             logger.debug("Submitting task for service: {}", service.get(SERVICE_NAME));
-            HTTPMonitorTask task = new HTTPMonitorTask(getContextConfiguration(), tasksExecutionServiceProvider.getMetricWriteHelper(), service);
+            HTTPMonitorTask task = new HTTPMonitorTask(getContextConfiguration(), tasksExecutionServiceProvider.getMetricWriteHelper(), service, false);
+            tasksExecutionServiceProvider.submit("windows-service-monitor", task);
+        }
+
+        // Submit tasks for service regexes
+        for (Map<String, String> serviceRegex : serviceRegexes) {
+            logger.debug("Submitting task for service regex: {}", serviceRegex.get("serviceRegex"));
+            HTTPMonitorTask task = new HTTPMonitorTask(getContextConfiguration(), tasksExecutionServiceProvider.getMetricWriteHelper(), serviceRegex, true);
             tasksExecutionServiceProvider.submit("windows-service-monitor", task);
         }
 
         logger.info("All tasks submitted for WindowsServiceMonitor");
     }
 
-    /**
-     * Required by the {@code TaskExecutionServiceProvider} above to know the total number of tasks it needs to wait on.
-     * Think of it as a count in the {@code CountDownLatch}
-     *
-     * @return Number of tasks, i.e. total number of servers to collect metrics from
-     */
     @Override
     protected List<Map<String, ?>> getServers() {
         logger.debug("Fetching list of servers from config.yml");
         List<Map<String, ?>> services = (List<Map<String, ?>>) getContextConfiguration().getConfigYml().get("services");
-        AssertUtils.assertNotNull(services, "The 'services' section in config.yml is not initialised");
-        logger.debug("List of servers: {}", services);
-        return services;
+        List<Map<String, ?>> serviceRegexes = (List<Map<String, ?>>) getContextConfiguration().getConfigYml().get("serviceRegex");
+        List<Map<String, ?>> allServices = new ArrayList<>();
+
+        if (services != null) {
+            allServices.addAll(services);
+        }
+        if (serviceRegexes != null) {
+            allServices.addAll(serviceRegexes);
+        }
+
+        if (allServices.isEmpty()) {
+            logger.warn("Both 'services' and 'serviceRegex' sections in config.yml are empty or not initialised.");
+        } else {
+            logger.debug("List of servers: {}", allServices);
+        }
+
+        return allServices;
     }
 }
